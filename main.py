@@ -103,6 +103,6 @@ if __name__ == "__main__":
     for perm in permutations(Gate.gates, 4):
         for gate in perm:
             gate.force_state = True
-            print(rca.get_state())
-
+        print(rca.get_state())
+        for gate in perm:
             gate.force_state = False
