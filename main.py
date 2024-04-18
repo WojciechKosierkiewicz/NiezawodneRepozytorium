@@ -1,12 +1,7 @@
 from itertools import permutations
 
 
-
-
-
-
 class IO:
-
     def __init__(self, state=False):
         self.state = state
 
@@ -16,13 +11,16 @@ class IO:
     def set_state(self, state):
         self.state = state
 
+
 class Gate:
     gates = []
+
     def __init__(self, inputs_list, force_state=False, state=False):
         self.inputs_list = inputs_list
         self.force_state = force_state
         self.state = state
         Gate.gates.append(self)
+
     def add_input(self, input):
         self.inputs_list.append(input)
 
@@ -77,34 +75,34 @@ class FullSumator:
             return self.state
         return self.out.get_state(), self.s.get_state()
 
+
 class RCA:
-    def __init__(self,io_list_a,io_list_b):
+    def __init__(self, io_list_a, io_list_b):
         self.io_list_a = io_list_a
         self.io_list_b = io_list_b
-        self.sumators = [FullSumator(a, b, IO()) for a, b in zip(self.io_list_a, self.io_list_b)]
-        for i in range(1, len(self.sumators)):
-            self.sumators[i].cin = self.sumators[i-1].s
-
+        self.sumators = []
+        last_io = IO()
+        for a, b in zip(self.io_list_a, self.io_list_b):
+            self.sumators.append(FullSumator(a, b, last_io))
+            last_io = self.sumators[-1].s
 
     def get_state(self):
         return [sumator.get_state()[0] for sumator in self.sumators]
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     a = [IO() for i in range(4)]
     b = [IO() for i in range(4)]
-    rca = RCA(a,b)
+    rca = RCA(a, b)
     for i in range(4):
         a[i].set_state(False)
         b[i].set_state(True)
+    a[1].set_state(True)
     print(rca.get_state())
-    print(Gate.gates)
 
     for perm in permutations(Gate.gates, 4):
         for gate in perm:
             gate.force_state = True
             print(rca.get_state())
-
-
-
 
             gate.force_state = False
