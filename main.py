@@ -2,15 +2,6 @@ from itertools import permutations
 from random import randint
 
 
-class IO:
-    def __init__(self, state=False):
-        self.state = state
-
-    def get_state(self):
-        return self.state
-
-    def set_state(self, state):
-        self.state = state
 
 
 class Gate:
@@ -36,6 +27,16 @@ class Gate:
             return self.force_state
         return self._get_state()
 
+class IO(Gate):
+    def __init__(self, state=False, *k, **kw):
+        super().__init__(inputs_list=[], *k, **kw)
+        self.state = state
+
+    def _get_state(self):
+        return self.state
+
+    def set_state(self, state):
+        self.state = state
 
 class OR(Gate):
     def _get_state(self):
