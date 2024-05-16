@@ -93,7 +93,7 @@ class RCA:
     def get_state(self):
         return [sumator.get_state()[0] for sumator in self.sumators]
 
-class Mod3Generator:
+class Mod8Bit3Generator:
     def __init__(self, io_list):
         level_one_2 = FullSumator(io_list[-3], NOT(io_list[-2]), io_list[-1])
         level_one_1 = FullSumator(NOT(io_list[-6]), io_list[-5], NOT(io_list[-4]))
@@ -104,19 +104,32 @@ class Mod3Generator:
         level_three = FullSumator(level_two_1.out, NOT(level_two_2.s), level_two_2.out)
 
         level_four = FullSumator(NOT(level_two_1.s), NOT(level_three.s), level_three.out)
-        self.s = level_four.out
-        self.out = level_four.s
+        self.s = level_four.s
+        self.out = level_four.out
 
     def get_state(self):
-        return [self.out.get_state(), self.s.get_state()]
+        return [self.s.get_state(), self.out.get_state()]
+
+class Mod16Bit3Generator:
+    def __init__(self, io_list):
+        gen_2 = Mod8Bit3Generator(io_list[8:])
+        gen_1 = Mod8Bit3Generator(io_list[:8])
+        level_one = FullSumator(gen_1.out, NOT(gen_2.s), gen_2.out)
+        level_two = FullSumator(NOT(gen_1.s), NOT(level_one.s), level_one.out)
+        self.out = level_two.out
+        self.s = level_two.s
+
+    def get_state(self):
+        return [self.s.get_state(), self.out.get_state()]
 
 
 if __name__ == "__main__":
-    a = [IO() for i in range(8)]
-    num = "01111110"
+    a = [IO() for i in range(16)]
+    num = bin(13257)[2:].rjust(16, "0")
+    print(num)
     for i, b in enumerate(num):
         a[i].set_state(int(b))
 
-    gen = Mod3Generator(a)
+    gen = Mod16Bit3Generator(a)
     print(gen.get_state())
     
