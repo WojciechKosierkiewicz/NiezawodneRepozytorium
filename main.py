@@ -105,7 +105,7 @@ class Mod3Generator:
 
         level_four = FullSumator(NOT(level_two_1.s), NOT(level_three.s), level_three.out)
         self.s = level_four.out
-        self.out = NOT(level_four.s)
+        self.out = level_four.s
 
     def get_state(self):
         return [self.out.get_state(), self.s.get_state()]
@@ -113,7 +113,7 @@ class Mod3Generator:
 
 if __name__ == "__main__":
     a = [IO() for i in range(8)]
-    num = "01111011"[::-1]
+    num = "01111110"
     for i, b in enumerate(num):
         a[i].set_state(int(b))
 
