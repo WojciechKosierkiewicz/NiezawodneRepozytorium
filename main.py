@@ -44,6 +44,10 @@ class AND(Gate):
             return self.state
         return all(i.get_state() for i in self.inputs_list)
 
+class NOT(Gate):
+    def get_state(self):
+        return not self.inputs_list.get_state()
+
 
 class XOR(Gate):
     def get_state(self):
@@ -89,20 +93,30 @@ class RCA:
     def get_state(self):
         return [sumator.get_state()[0] for sumator in self.sumators]
 
+class Mod3Generator:
+    def __init__(self, io_list):
+        level_one_2 = FullSumator(io_list[-3], NOT(io_list[-2]), io_list[-1])
+        level_one_1 = FullSumator(NOT(io_list[-6]), io_list[-5], NOT(io_list[-4]))
+
+        level_two_2 = FullSumator(level_one_1.out, NOT(level_one_2.s), level_one_2.out)
+        level_two_1 = FullSumator(NOT(io_list[-8]), io_list[-7], NOT(level_one_1.s))
+
+        level_three = FullSumator(level_two_1.out, NOT(level_two_2.s), level_two_2.out)
+
+        level_four = FullSumator(NOT(level_two_1.s), NOT(level_three.s), level_three.out)
+        self.s = level_four.out
+        self.out = NOT(level_four.s)
+
+    def get_state(self):
+        return [self.out.get_state(), self.s.get_state()]
+
 
 if __name__ == "__main__":
-    a = [IO() for i in range(4)]
-    b = [IO() for i in range(4)]
-    rca = RCA(a, b)
-    for i in range(4):
-        a[i].set_state(False)
-        b[i].set_state(True)
-    a[1].set_state(True)
-    print(rca.get_state())
+    a = [IO() for i in range(8)]
+    num = "01111011"[::-1]
+    for i, b in enumerate(num):
+        a[i].set_state(int(b))
 
-    for perm in permutations(Gate.gates, 4):
-        for gate in perm:
-            gate.force_state = True
-        print(rca.get_state())
-        for gate in perm:
-            gate.force_state = False
+    gen = Mod3Generator(a)
+    print(gen.get_state())
+    
