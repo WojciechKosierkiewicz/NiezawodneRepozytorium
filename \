@@ -118,6 +118,30 @@ class Mod8Bit3Generator:
         return [self.s.get_state(), self.out.get_state()]
 
 
+
+# class Mod5Bit3Generator:
+#     def __init__(self, io_list):
+#         # Ensure we have 5 bits
+#         assert len(io_list) == 5, "Input must be a 5-bit number"
+# 
+#         # Reverse the list to start from LSB
+#         io_list = io_list[::-1]
+# 
+#         # Level One: Handle bits 0, 1, 2
+#         level_one = FullSumator(io_list[0], NOT(io_list[1]), io_list[2])
+# 
+#         # Level Two: Combine level_one with bits 3 and 4
+#         level_two = FullSumator(NOT(io_list[3]), io_list[4], NOT(level_one.s))
+# 
+#         # Level Three: Final combination
+#         level_three = FullSumator(level_one.out, NOT(level_two.s), level_two.out)
+# 
+#         self.s = level_three.s
+#         self.out = level_three.out
+# 
+#     def get_state(self):
+#         return [self.s.get_state(), self.out.get_state()]
+
 class Mod5Bit3Generator:
     def __init__(self, io_list):
         assert len(io_list) == 5, "Input must be a 5-bit number"
@@ -126,19 +150,18 @@ class Mod5Bit3Generator:
         fa1 = FullSumator(io_list[-3], NOT(io_list[-2]), io_list[-1])
 
         # Level Two: Combine fa1 output with bits 3 and 4
-        fa2 = FullSumator(NOT(io_list[-4]), NOT(fa1.s),  fa1.out)
+        fa2 = FullSumator(NOT(io_list[-4]), NOT(fa1.out),  fa1.s)
 
         # Level Three: Combine outputs from fa1 and fa2
-        fa3 = FullSumator(io_list[-5], NOT(fa2.s), fa2.out)
+        fa3 = FullSumator(NOT(io_list[-5]), NOT(fa1.out), fa1.s)
 
 
         # Final output
-        self.s = NOT(XOR([fa3.s, fa3.out]))
-        self.out = AND([fa3.s, NOT(fa3.out)])
+        self.s = fa3.s
+        self.out = fa3.out
 
     def get_state(self):
         return [self.s.get_state(), self.out.get_state()]
-
 
 class CompMod3:
     def __init__(self, io_list_a, io_list_b):
@@ -221,9 +244,6 @@ class TestResults:
         self.results.append(result)
 
     def print_results(self):
-        print(f"Total tests: {len(self.results)}")
-        print("Failed tests:")
-        print(" - Broken gate")
         for i, result in enumerate(self.results):
             if result.failed:
                 if result.broken_gate is not None:
@@ -233,7 +253,6 @@ class TestResults:
                     if result.failed:
                         print(f"Failed at gate {result.broken_gate}")
                     print()
-        print(" - No broken gate")
         for i, result in enumerate(self.results):
             if result.failed:
                 if result.broken_gate is None:
@@ -243,8 +262,6 @@ class TestResults:
                     if result.failed:
                         print(f"Failed at gate {result.broken_gate}")
                     print()
-        print("Passed tests:")
-        print(" - Broken gate")
         for i, result in enumerate(self.results):
             if not result.failed:
                 if result.broken_gate is not None:
@@ -254,7 +271,6 @@ class TestResults:
                     if result.failed:
                         print(f"Failed at gate {result.broken_gate}")
                     print()
-        print(" no broken gate")
         for i, result in enumerate(self.results):
             if not result.failed:
                 if result.broken_gate is None:
