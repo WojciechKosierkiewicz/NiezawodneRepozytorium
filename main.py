@@ -152,6 +152,41 @@ def get_16bit_io_from_num(a):
     a_bin = bin(a)[2:].rjust(16, "0")
     return [IO(state=int(bit)) for bit in a_bin]
 
+
+def get_5bit_io_from_num(a):
+    a_bin = bin(a)[2:].rjust(5, "0")
+    return [IO(state=int(bit)) for bit in a_bin]
+
+class CLA5Bit:
+    def __init__(self, io_list_a, io_list_b):
+        self.io_list_a = io_list_a[::-1]  # Reverse to start from LSB
+        self.io_list_b = io_list_b[::-1]  # Reverse to start from LSB
+        self.cin = IO(state=False)  # Initial carry-in is 0
+        self.generate_propagate()
+        self.calculate_carries()
+        self.calculate_sum()
+
+    def generate_propagate(self):
+        # Calculate generate (G) and propagate (P) for each bit
+        self.G = [AND([a, b]) for a, b in zip(self.io_list_a, self.io_list_b)]
+        self.P = [XOR([a, b]) for a, b in zip(self.io_list_a, self.io_list_b)]
+
+    def calculate_carries(self):
+        # Calculate carries using carry lookahead logic
+        self.C = [self.cin]  # C[0] is the initial carry-in
+        for i in range(5):
+            term1 = self.G[i]
+            term2 = AND([self.P[i], self.C[i]])
+            self.C.append(OR([term1, term2]))
+
+    def calculate_sum(self):
+        # Calculate sum bits
+        self.S = [XOR([p, c]) for p, c in zip(self.P, self.C)]
+
+    def get_state(self):
+        # Return the sum bits and the final carry-out
+        return [s.get_state() for s in self.S[::-1]] + [self.C[-1].get_state()]
+
 if __name__ == "__main__":
     for i in range(1000):
         a = randint(0, 66535)
@@ -173,4 +208,3 @@ if __name__ == "__main__":
         s = a + b
         print(res != s, comparator.get_state())
 
-        
