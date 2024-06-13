@@ -2,8 +2,6 @@ from itertools import permutations
 from random import randint
 
 
-
-
 class Gate:
     gates = []
 
@@ -78,6 +76,16 @@ class FullSumator:
     def get_state(self):
         return self.out.get_state(), self.s.get_state()
 
+class HalfSumator:
+    def __init__(self, a, b, force_state=False, state=(False, False)):
+        self.a = a
+        self.b = b
+        self.s = XOR([self.a, self.b])
+        self.out = AND([self.a, self.b])
+
+    def get_state(self):
+        return self.out.get_state(), self.s.get_state()
+
 
 class RCA:
     def __init__(self, io_list_a, io_list_b):
@@ -109,17 +117,52 @@ class Mod8Bit3Generator:
     def get_state(self):
         return [self.s.get_state(), self.out.get_state()]
 
-class Mod16Bit3Generator:
+
+
+# class Mod5Bit3Generator:
+#     def __init__(self, io_list):
+#         # Ensure we have 5 bits
+#         assert len(io_list) == 5, "Input must be a 5-bit number"
+# 
+#         # Reverse the list to start from LSB
+#         io_list = io_list[::-1]
+# 
+#         # Level One: Handle bits 0, 1, 2
+#         level_one = FullSumator(io_list[0], NOT(io_list[1]), io_list[2])
+# 
+#         # Level Two: Combine level_one with bits 3 and 4
+#         level_two = FullSumator(NOT(io_list[3]), io_list[4], NOT(level_one.s))
+# 
+#         # Level Three: Final combination
+#         level_three = FullSumator(level_one.out, NOT(level_two.s), level_two.out)
+# 
+#         self.s = level_three.s
+#         self.out = level_three.out
+# 
+#     def get_state(self):
+#         return [self.s.get_state(), self.out.get_state()]
+
+class Mod5Bit3Generator:
     def __init__(self, io_list):
-        gen_2 = Mod8Bit3Generator(io_list[8:])
-        gen_1 = Mod8Bit3Generator(io_list[:8])
-        level_one = FullSumator(gen_1.out, NOT(gen_2.s), gen_2.out)
-        level_two = FullSumator(NOT(gen_1.s), NOT(level_one.s), level_one.out)
-        self.out = level_two.out
-        self.s = level_two.s
+        assert len(io_list) == 5, "Input must be a 5-bit number"
+
+        # Level One: Handle bits 0, 1, 2
+        fa1 = FullSumator(io_list[-3], NOT(io_list[-2]), io_list[-1])
+
+        # Level Two: Combine fa1 output with bits 3 and 4
+        ha = HalfSumator(io_list[-5], NOT(io_list[-4]))
+
+        # Level Three: Combine outputs from fa1 and fa2
+        fa2 = FullSumator(ha.s, NOT(fa1.out), fa1.s)
+
+        fa3 = FullSumator(ha.out, NOT(fa2.out), fa2.s)
+
+        # Final output
+        self.s = fa3.s
+        self.out = fa3.out
 
     def get_state(self):
-        return [self.s.get_state(), self.out.get_state()]
+        return [self.out.get_state(), self.s.get_state()]
 
 class CompMod3:
     def __init__(self, io_list_a, io_list_b):
@@ -153,8 +196,8 @@ def get_16bit_io_from_num(a):
     return [IO(state=int(bit)) for bit in a_bin]
 
 
-def get_5bit_io_from_num(a):
-    a_bin = bin(a)[2:].rjust(5, "0")
+def get_4bit_io_from_num(a):
+    a_bin = bin(a)[2:].rjust(4, "0")
     return [IO(state=int(bit)) for bit in a_bin]
 
 class CLA5Bit:
@@ -174,7 +217,7 @@ class CLA5Bit:
     def calculate_carries(self):
         # Calculate carries using carry lookahead logic
         self.C = [self.cin]  # C[0] is the initial carry-in
-        for i in range(5):
+        for i in range(4):
             term1 = self.G[i]
             term2 = AND([self.P[i], self.C[i]])
             self.C.append(OR([term1, term2]))
@@ -185,26 +228,26 @@ class CLA5Bit:
 
     def get_state(self):
         # Return the sum bits and the final carry-out
-        return [s.get_state() for s in self.S[::-1]] + [self.C[-1].get_state()]
+        return  [self.C[-1].get_state()] + [s.get_state() for s in self.S[::-1]]
 
 if __name__ == "__main__":
-    for i in range(1000):
-        a = randint(0, 66535)
-        b = randint(0, 66535)
-        a_io = get_16bit_io_from_num(a)
-        rest_gen_a = Mod16Bit3Generator(a_io)
-        b_io = get_16bit_io_from_num(b)
-        rest_gen_b = Mod16Bit3Generator(b_io)
+    a = randint(0, 2**4-1)
+    b = randint(0, 2**4-1)
+    a_io = get_4bit_io_from_num(a)
+    rest_gen_a = Mod5Bit3Generator([IO(0)] + a_io)
+    b_io = get_4bit_io_from_num(b)
+    rest_gen_b = Mod5Bit3Generator([IO(0)] + b_io)
+    print(a, rest_gen_a.get_state())
+    print(b, rest_gen_b.get_state())
 
-        mod3_sum = Mod3Sumator([rest_gen_a.s, rest_gen_a.out], [rest_gen_b.s, rest_gen_b.out])
-        
-        sumator = RCA(a_io, b_io)
-        gate_idx = randint(0, len(Gate.gates))
-        Gate.gates[gate_idx].force_state = randint(0, 1)
+    mod3_sum = Mod3Sumator([rest_gen_a.s, rest_gen_a.out], [rest_gen_b.s, rest_gen_b.out])
+    
+    sumator = CLA5Bit(a_io, b_io)
 
-        rest_gen_sum = Mod16Bit3Generator([s.out for s in sumator.sumators[::-1]])
-        comparator = CompMod3([rest_gen_sum.s, rest_gen_sum.out], [mod3_sum.s, mod3_sum.out])
-        res = int(''.join([str(int(a)) for a in sumator.get_state()]), 2)
-        s = a + b
-        print(res != s, comparator.get_state())
+    rest_gen_sum = Mod5Bit3Generator([sumator.C[-1]] + [s for s in sumator.S[::-1]])
+    comparator = CompMod3([rest_gen_sum.s, rest_gen_sum.out], [mod3_sum.s, mod3_sum.out])
+    res = int(''.join([str(int(a)) for a in sumator.get_state()]), 2)
+    s = a + b
+    print(res != s, comparator.get_state())
+    print(res, s)
 
