@@ -327,18 +327,26 @@ def check_gate(gate, sumator, a, b, state):
         parent = parent.parent
     print(f"\b\b\bwas forced to {state} leading to:")
     print(f"Excepted result {s}, actual result {res}")
+    correct = False
+    detected = False
     if res == s:
+        correct = True
         print("Correct result")
     else:
         print("Incorrect result")
     if comparator.get_state():
+        detected = True
         print("Detected by comparator circuit")
     else:
         print("Not detected by comparator circuit")
     print("")
     gate.force_state = None
+    return detected, correct
 
 if __name__ == "__main__":
+    total_tests = 0
+    total_correct = 0
+    total_detected = 0
     for a in range(0, 2**4):
         for b in range(0, 2**4):
             a_io = get_4bit_io_from_num(a)
@@ -354,7 +362,13 @@ if __name__ == "__main__":
             comparator = CompMod3([rest_gen_sum.s, rest_gen_sum.out], [mod3_sum.s, mod3_sum.out])
 
             for gate in Gate.gates:
-                check_gate(gate, sumator, a, b, True)
-                check_gate(gate, sumator, a, b, False)
+                d, c = check_gate(gate, sumator, a, b, True)
+                total_correct += c
+                total_detected += d
+                d, c = check_gate(gate, sumator, a, b, False)
+                total_correct += c
+                total_detected += d
+                total_tests += 2
             Gate.gates.clear()
+    print(f"\n\nTotal tests: {total_tests}, detected errors: {total_detected}, correct results: {total_correct}")
 
