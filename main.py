@@ -245,6 +245,9 @@ class TestResults:
         self.results.append(result)
 
     def print_results(self):
+        print(f"Total tests: {len(self.results)}")
+        print("Failed tests:")
+        print(" - Broken gate")
         for i, result in enumerate(self.results):
             if result.failed:
                 if result.broken_gate is not None:
@@ -254,6 +257,7 @@ class TestResults:
                     if result.failed:
                         print(f"Failed at gate {result.broken_gate}")
                     print()
+        print(" - No broken gate")
         for i, result in enumerate(self.results):
             if result.failed:
                 if result.broken_gate is None:
@@ -263,6 +267,8 @@ class TestResults:
                     if result.failed:
                         print(f"Failed at gate {result.broken_gate}")
                     print()
+        print("Passed tests:")
+        print(" - Broken gate")
         for i, result in enumerate(self.results):
             if not result.failed:
                 if result.broken_gate is not None:
@@ -272,6 +278,7 @@ class TestResults:
                     if result.failed:
                         print(f"Failed at gate {result.broken_gate}")
                     print()
+        print(" no broken gate")
         for i, result in enumerate(self.results):
             if not result.failed:
                 if result.broken_gate is None:
