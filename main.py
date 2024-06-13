@@ -230,6 +230,59 @@ class CLA5Bit:
         # Return the sum bits and the final carry-out
         return  [self.C[-1].get_state()] + [s.get_state() for s in self.S[::-1]]
 
+class TestResult:
+    def __init__(self):
+        self.inputs = []
+        self.outputs = []
+        self.broken_gate = None
+        self.failed = False
+
+class TestResults:
+    def __init__(self):
+        self.results = []
+
+    def add_result(self, result: TestResult):
+        self.results.append(result)
+
+    def print_results(self):
+        for i, result in enumerate(self.results):
+            if result.failed:
+                if result.broken_gate is not None:
+                    print(f"Test {i+1}")
+                    print(f"Inputs: {result.inputs}")
+                    print(f"Outputs: {result.outputs}")
+                    if result.failed:
+                        print(f"Failed at gate {result.broken_gate}")
+                    print()
+        for i, result in enumerate(self.results):
+            if result.failed:
+                if result.broken_gate is None:
+                    print(f"Test {i+1}")
+                    print(f"Inputs: {result.inputs}")
+                    print(f"Outputs: {result.outputs}")
+                    if result.failed:
+                        print(f"Failed at gate {result.broken_gate}")
+                    print()
+        for i, result in enumerate(self.results):
+            if not result.failed:
+                if result.broken_gate is not None:
+                    print(f"Test {i+1}")
+                    print(f"Inputs: {result.inputs}")
+                    print(f"Outputs: {result.outputs}")
+                    if result.failed:
+                        print(f"Failed at gate {result.broken_gate}")
+                    print()
+        for i, result in enumerate(self.results):
+            if not result.failed:
+                if result.broken_gate is None:
+                    print(f"Test {i+1}")
+                    print(f"Inputs: {result.inputs}")
+                    print(f"Outputs: {result.outputs}")
+                    if result.failed:
+                        print(f"Failed at gate {result.broken_gate}")
+                    print()
+
+
 if __name__ == "__main__":
     a = randint(0, 2**4-1)
     b = randint(0, 2**4-1)
