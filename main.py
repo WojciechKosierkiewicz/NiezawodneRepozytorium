@@ -339,8 +339,8 @@ def check_gate(gate, sumator, a, b, state):
     gate.force_state = None
 
 if __name__ == "__main__":
-    for a in range(0, 2**4-1):
-        for b in range(0, 2**4-1):
+    for a in range(0, 2**4):
+        for b in range(0, 2**4):
             a_io = get_4bit_io_from_num(a)
             rest_gen_a = Mod5Bit3Generator([IO(0)] + a_io)
             b_io = get_4bit_io_from_num(b)
