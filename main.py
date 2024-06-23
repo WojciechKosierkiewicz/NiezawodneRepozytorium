@@ -220,6 +220,18 @@ def get_4bit_io_from_num(a):
     a_bin = bin(a)[2:].rjust(4, "0")
     return [IO(state=int(bit)) for bit in a_bin]
 
+class DotOperator:
+    def __init__(self, G1, P1, G2, P2, parent=None):
+        self.parent = parent
+        self.G = OR([G1, AND([P1, G2], parent=self)], parent=self)
+        self.P = AND([P1, P2], parent=self)
+
+    def get_state(self):
+        return self.G.get_state(), self.P.get_state()
+
+    def __repr__(self):
+        return "Dot"
+
 class CLA5Bit:
     def __init__(self, io_list_a, io_list_b, parent=None):
         self.parent = parent
@@ -231,88 +243,36 @@ class CLA5Bit:
         self.calculate_sum()
 
     def generate_propagate(self):
-        # Calculate generate (G) and propagate (P) for each bit
+        # Calculate initial generate (G) and propagate (P) for each bit
         self.G = [AND([a, b], parent=self) for a, b in zip(self.io_list_a, self.io_list_b)]
         self.P = [XOR([a, b], parent=self) for a, b in zip(self.io_list_a, self.io_list_b)]
 
     def calculate_carries(self):
-        # Calculate carries using carry lookahead logic
-        self.C = [self.cin]  # C[0] is the initial carry-in
-        for i in range(4):
-            term1 = self.G[i]
-            term2 = AND([self.P[i], self.C[i]], parent=self)
-            self.C.append(OR([term1, term2], parent=self))
+        # First level of prefix computation
+        dot_1_0 = DotOperator(self.G[1], self.P[1], self.G[0], self.P[0], parent=self)
+        dot_3_2 = DotOperator(self.G[3], self.P[3], self.G[2], self.P[2], parent=self)
+
+        # Second level of prefix computation
+        dot_3_0 = DotOperator(dot_3_2.G, dot_3_2.P, dot_1_0.G, dot_1_0.P, parent=self)
+
+        # Compute carries
+        self.C = [self.cin]
+        self.C.append(OR([self.G[0], AND([self.P[0], self.cin], parent=self)], parent=self))
+        self.C.append(OR([dot_1_0.G, AND([dot_1_0.P, self.cin], parent=self)], parent=self))
+        self.C.append(OR([self.G[2], AND([self.P[2], self.C[2]], parent=self)], parent=self))
+        self.C.append(OR([dot_3_2.G, AND([dot_3_2.P, self.C[2]], parent=self)], parent=self))
+        self.C.append(OR([dot_3_0.G, AND([dot_3_0.P, self.cin], parent=self)], parent=self))
 
     def calculate_sum(self):
         # Calculate sum bits
-        self.S = [XOR([p, c], parent=self) for p, c in zip(self.P, self.C)]
+        self.S = [XOR([p, c], parent=self) for p, c in zip(self.P, self.C[:-1])]
 
     def get_state(self):
         # Return the sum bits and the final carry-out
-        return  [self.C[-1].get_state()] + [s.get_state() for s in self.S[::-1]]
+        return [self.C[-1].get_state()] + [s.get_state() for s in self.S[::-1]]
 
     def __repr__(self):
-        return f"CLA5Bit"
-
-class TestResult:
-    def __init__(self):
-        self.inputs = []
-        self.outputs = []
-        self.broken_gate = None
-        self.failed = False
-
-class TestResults:
-    def __init__(self):
-        self.results = []
-
-    def add_result(self, result: TestResult):
-        self.results.append(result)
-
-    def print_results(self):
-        print(f"Total tests: {len(self.results)}")
-        print("Failed tests:")
-        print(" - Broken gate")
-        for i, result in enumerate(self.results):
-            if result.failed:
-                if result.broken_gate is not None:
-                    print(f"Test {i+1}")
-                    print(f"Inputs: {result.inputs}")
-                    print(f"Outputs: {result.outputs}")
-                    if result.failed:
-                        print(f"Failed at gate {result.broken_gate}")
-                    print()
-        print(" - No broken gate")
-        for i, result in enumerate(self.results):
-            if result.failed:
-                if result.broken_gate is None:
-                    print(f"Test {i+1}")
-                    print(f"Inputs: {result.inputs}")
-                    print(f"Outputs: {result.outputs}")
-                    if result.failed:
-                        print(f"Failed at gate {result.broken_gate}")
-                    print()
-        print("Passed tests:")
-        print(" - Broken gate")
-        for i, result in enumerate(self.results):
-            if not result.failed:
-                if result.broken_gate is not None:
-                    print(f"Test {i+1}")
-                    print(f"Inputs: {result.inputs}")
-                    print(f"Outputs: {result.outputs}")
-                    if result.failed:
-                        print(f"Failed at gate {result.broken_gate}")
-                    print()
-        print(" no broken gate")
-        for i, result in enumerate(self.results):
-            if not result.failed:
-                if result.broken_gate is None:
-                    print(f"Test {i+1}")
-                    print(f"Inputs: {result.inputs}")
-                    print(f"Outputs: {result.outputs}")
-                    if result.failed:
-                        print(f"Failed at gate {result.broken_gate}")
-                    print()
-
+        return f"CLA5Bit_Sklansky"
 
 def check_gate(gate, sumator, a, b, state):
     gate.force_state = state
